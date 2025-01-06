@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -10,12 +11,12 @@ namespace TouristGuideAppWF.Services
 {
     public class WeatherService
     {
-        public readonly HttpClient httpClient;
+        public readonly HttpClient _httpClient;
         public readonly string weatherApiKey;
 
-        public WeatherService(IConfiguration configuration) 
-        { 
-            httpClient = new HttpClient();
+        public WeatherService(HttpClient httpClient, IConfiguration configuration) 
+        {
+            _httpClient = _httpClient ?? throw new ArgumentNullException(nameof(_httpClient));
             weatherApiKey = configuration["WeatherApi:ApiKey"];
 
             if (string.IsNullOrEmpty(weatherApiKey))
@@ -27,13 +28,17 @@ namespace TouristGuideAppWF.Services
 
         public async Task<string> GetWeatherAsync(string cityName, double lat, double lon)
         {
-            
 
             string url = $"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={weatherApiKey}&units=metric";
+            
+            if(string.IsNullOrEmpty(cityName))
+            {
+                return "City name is missing.";
+            }
 
             try
             {
-                var response = await httpClient.GetAsync(url);
+                var response = await _httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
 
                 var responseBody = await response.Content.ReadAsStringAsync();

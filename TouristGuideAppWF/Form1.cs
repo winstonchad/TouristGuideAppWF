@@ -1,10 +1,8 @@
+using System;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using GenerativeAI;
-using GenerativeAI.Models;
-using System.Text;
 using TouristGuideAppWF.Services;
 
 
@@ -12,33 +10,31 @@ namespace TouristGuideAppWF
 {
     public partial class Form1 : Form
     {
-        private readonly IConfigurationRoot _configuration;
-        private readonly HttpClient _httpClient;
-
         private readonly NominatimService _nominatimService;
         private readonly WeatherService _weatherService;
         private readonly GeminiService _geminiService;
 
-        public Form1(IHttpClientFactory httpClientFactory)
+        public Form1(IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
             InitializeComponent();
-            _configuration = LoadConfiguration();
-            _httpClient = httpClientFactory.CreateClient();  
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "TouristGuideApp 1.0 (amirkass84@gmail.com) ");
 
-            _nominatimService = new NominatimService(_httpClient);
-            _weatherService = new WeatherService(_configuration);
-            _geminiService = new GeminiService(_configuration);
+             HttpClient httpClient = httpClientFactory.CreateClient();
+             httpClient.DefaultRequestHeaders.Add("User-Agent", "TouristGuideApp 1.0 (amirkass84@gmail.com) ");
+
+            /// initialize services
+            _nominatimService = new NominatimService(httpClient);
+            _weatherService = new WeatherService(httpClient, configuration);
+            _geminiService = new GeminiService(httpClient, configuration);
         }
 
-        private IConfigurationRoot LoadConfiguration()
-        {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        //private IConfigurationRoot LoadConfiguration()
+        //{
+        //    var builder = new ConfigurationBuilder()
+        //        .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+        //        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-            return builder.Build();
-        }
+        //    return builder.Build();
+        //}
 
 
         private async void SearchBtn_Click(object sender, EventArgs e)
