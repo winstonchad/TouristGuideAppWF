@@ -14,9 +14,9 @@ namespace TouristGuideAppWF.Services
         public readonly HttpClient _httpClient;
         public readonly string weatherApiKey;
 
-        public WeatherService(HttpClient httpClient, IConfiguration configuration) 
+        public WeatherService(HttpClient httpClient, IConfiguration configuration)
         {
-            _httpClient = _httpClient ?? throw new ArgumentNullException(nameof(_httpClient));
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             weatherApiKey = configuration["WeatherApi:ApiKey"];
 
             if (string.IsNullOrEmpty(weatherApiKey))
