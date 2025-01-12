@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using TouristGuideAppWF.Services;
-
+using System.Diagnostics;
 
 namespace TouristGuideAppWF
 {
@@ -18,14 +18,15 @@ namespace TouristGuideAppWF
         {
             InitializeComponent();
 
-             HttpClient httpClient = httpClientFactory.CreateClient();
-             httpClient.DefaultRequestHeaders.Add("User-Agent", "TouristGuideApp 1.0 (amirkass84@gmail.com) ");
+            HttpClient httpClient = httpClientFactory.CreateClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "TouristGuideApp 1.0 (amirkass84@gmail.com) ");
 
             /// initialize services
             _nominatimService = new NominatimService(httpClient);
             _weatherService = new WeatherService(httpClient, configuration);
             _geminiService = new GeminiService(httpClient, configuration);
         }
+
 
         //private IConfigurationRoot LoadConfiguration()
         //{
@@ -64,9 +65,44 @@ namespace TouristGuideAppWF
             }
         }
 
-        
-        private void textBox1_TextChanged(object sender, EventArgs e){}
 
-        private void ResultTextBox_TextChanged(object sender, EventArgs e) {}
+        private void textBox1_TextChanged(object sender, EventArgs e) { }
+
+        private void ResultTextBox_TextChanged(object sender, EventArgs e) { }
+
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            string cityName = CityNameInput.Text.Trim();
+
+            if (string.IsNullOrEmpty(cityName))
+            {
+                MessageBox.Show("Please enter a valid city name.");
+                return;
+            }
+
+            try
+            {
+                var (latitude, longitude) = await _nominatimService.GetCoordinatesAsync(cityName);
+
+                //string googleMapsUrl = $"https://www.google.com/maps?q={latitude},{longitude}";
+                string googleMapsUrl = $"https://www.google.com/maps/place/{cityName}";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = googleMapsUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+        }
+
+        private void viewHistoryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

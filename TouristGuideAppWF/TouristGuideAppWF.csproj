@@ -19,12 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Bunifu.UI.WinForms" Version="7.2.0" />
     <PackageReference Include="Google_GenerativeAI" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
-    <PackageReference Include="OpenAI" Version="2.1.0" />
   </ItemGroup>
 
 </Project>
