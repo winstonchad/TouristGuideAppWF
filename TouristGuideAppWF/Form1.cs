@@ -13,6 +13,7 @@ namespace TouristGuideAppWF
         private readonly NominatimService _nominatimService;
         private readonly WeatherService _weatherService;
         private readonly GeminiService _geminiService;
+        private readonly HistoryService _historyService;
 
         public Form1(IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
@@ -25,6 +26,7 @@ namespace TouristGuideAppWF
             _nominatimService = new NominatimService(httpClient);
             _weatherService = new WeatherService(httpClient, configuration);
             _geminiService = new GeminiService(httpClient, configuration);
+            _historyService = new HistoryService();
         }
 
 
@@ -55,6 +57,8 @@ namespace TouristGuideAppWF
                 // Вызов методов для получения информации
                 string weatherInfo = await _weatherService.GetWeatherAsync(cityName, latitude, longitude);
                 string touristInfo = await _geminiService.GetTouristAttractionsAsync(cityName);
+
+                _historyService.AddToHistory(cityName, weatherInfo, touristInfo);
 
                 // Вывод результатов в текстовое поле
                 ResultTextBox.Text = $"Weather Info:\n{weatherInfo}\n\nTourist Attractions:\n{touristInfo}";
@@ -100,9 +104,10 @@ namespace TouristGuideAppWF
 
         }
 
-        private void viewHistoryToolStripMenuItem_Click(object sender, EventArgs e)
+        private void viewHistoryMenuClick(object sender, EventArgs e)
         {
-
+            HistoryForm historyForm = new HistoryForm(new HistoryService());
+            historyForm.Show();
         }
     }
 }

@@ -74,7 +74,7 @@
             ResultTextBox.Location = new Point(14, 307);
             ResultTextBox.Margin = new Padding(3, 4, 3, 4);
             ResultTextBox.Name = "ResultTextBox";
-            ResultTextBox.Size = new Size(660, 463);
+            ResultTextBox.Size = new Size(660, 433);
             ResultTextBox.TabIndex = 4;
             ResultTextBox.Text = "";
             ResultTextBox.TextChanged += ResultTextBox_TextChanged;
@@ -96,7 +96,7 @@
             menuStrip1.Items.AddRange(new ToolStripItem[] { historyToolStripMenuItem });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
-            menuStrip1.Size = new Size(686, 28);
+            menuStrip1.Size = new Size(682, 28);
             menuStrip1.TabIndex = 6;
             menuStrip1.Text = "menuStrip1";
             // 
@@ -109,10 +109,10 @@
             // 
             // viewHistoryToolStripMenuItem
             // 
-            viewHistoryToolStripMenuItem.Name = "viewHistoryToolStripMenuItem";
+            viewHistoryToolStripMenuItem.Name = "viewHistoryMenuClick";
             viewHistoryToolStripMenuItem.Size = new Size(224, 26);
             viewHistoryToolStripMenuItem.Text = "View History";
-            viewHistoryToolStripMenuItem.Click += viewHistoryToolStripMenuItem_Click;
+            viewHistoryToolStripMenuItem.Click += viewHistoryMenuClick;
             // 
             // editHistoryToolStripMenuItem
             // 
@@ -124,7 +124,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(686, 783);
+            ClientSize = new Size(682, 753);
             Controls.Add(button1);
             Controls.Add(ResultTextBox);
             Controls.Add(label2);

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace TouristGuideAppWF.Services
 {
-    internal class GeminiService
+    public class GeminiService
     {
         private readonly HttpClient _httpClient;
         private readonly string _googleAiApiKey;
