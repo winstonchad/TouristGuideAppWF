@@ -7,86 +7,81 @@ using Microsoft.Extensions.Configuration;
 
 namespace TouristGuideAppWF.Services
 {
-    public class GeminiService
+    public class GeminiService : BaseService
     {
-        private readonly HttpClient _httpClient;
         private readonly string _googleAiApiKey;
 
         public GeminiService(HttpClient httpClient, IConfiguration configuration)
+            : base(httpClient, configuration)
         {
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _googleAiApiKey = configuration["GoogleAi:ApiKey"];
-
-            if (string.IsNullOrEmpty(_googleAiApiKey))
-            {
-                throw new InvalidOperationException("Google Gemini API key is missing in appsettings.json");
-            }
+            // Retrieve the API key from configuration and ensure it is valid
+            _googleAiApiKey = _configuration["GoogleAi:ApiKey"]
+                ?? throw new InvalidOperationException("Google Gemini API key is missing in appsettings.json");
         }
 
+        /// <summary>
+        /// Retrieves tourist attractions for a given city using the Google Gemini API.
+        /// </summary>
+        /// <param name="cityName">Name of the city.</param>
+        /// <returns>A string containing the tourist attractions or an error message.</returns>
         public async Task<string> GetTouristAttractionsAsync(string cityName)
         {
+            // Validate input
             if (string.IsNullOrWhiteSpace(cityName))
-            {
                 return "City name cannot be empty.";
-            }
 
+            // Define the URL for the Gemini API
             string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+
+            // Prepare the request body
+            var requestBody = new
+            {
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new[]
+                        {
+                            new { text = $"List 5 tourist attractions in {cityName} with a short description." }
+                        }
+                    }
+                }
+            };
+
+            // Serialize the request body to JSON
+            string jsonBody = JsonSerializer.Serialize(requestBody);
+
+            // Create the HttpRequestMessage
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+            };
+
+            // Add required headers
+            request.Headers.Add("x-goog-api-key", _googleAiApiKey);
+            request.Headers.Add("Accept", "application/json");
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
+                // Use the base service method to send the request
+                string responseBody = await SendRequestAsync(request);
 
-                // Устанавливаем заголовки
-                request.Headers.Add("x-goog-api-key", _googleAiApiKey);
-                request.Headers.Add("Accept", "application/json");
-
-                // Формируем тело запроса
-                var requestBody = new
-                {
-                    contents = new[]
-                    {
-                        new
-                        {
-                            parts = new[]
-                            {
-                                new { text = $"List 5 tourist attractions in {cityName} with a short description for each. Each description should be 1-2 sentences." }
-                            }
-                        }
-                    }
-                };
-
-                string jsonBody = JsonSerializer.Serialize(requestBody);
-                request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.SendAsync(request);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorResponse = await response.Content.ReadAsStringAsync();
-                    throw new HttpRequestException($"HTTP error: {response.StatusCode}, {errorResponse}");
-                }
-
-                string responseBody = await response.Content.ReadAsStringAsync();
+                // Parse the response JSON
                 using JsonDocument jsonResponse = JsonDocument.Parse(responseBody);
 
-                if (jsonResponse.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+                // Extract and return tourist attractions if available
+                if (jsonResponse.RootElement.TryGetProperty("candidates", out var candidates) &&
+                    candidates.GetArrayLength() > 0)
                 {
-                    var candidate = candidates[0];
-                    string result = candidate.GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
-                    return result;
+                    return candidates[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
                 }
-                else
-                {
-                    return "No tourist attractions found in Gemini response.";
-                }
-            }
-            catch (HttpRequestException ex)
-            {
-                return $"HTTP error while getting response from Gemini: {ex.Message}, Inner Exception: {ex.InnerException?.Message}";
+
+                return "No tourist attractions found.";
             }
             catch (Exception ex)
             {
-                return $"Error in GetTouristAttractionsAsync: {ex.Message}, Stack Trace: {ex.StackTrace}";
+                // Handle unexpected exceptions
+                return $"An error occurred while retrieving tourist attractions: {ex.Message}";
             }
         }
     }

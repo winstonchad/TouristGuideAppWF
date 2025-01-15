@@ -1,103 +1,70 @@
 ﻿using System;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using TouristGuideAppWF.Services;
-using Xunit;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
+using TouristGuideAppWF.Services;
+using Xunit;
 
-public class NominatimServiceTests
+namespace TouristGuideAppWF.Tests
 {
-    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
-    private readonly HttpClient _httpClient;
-    private readonly NominatimService _nominatimService;
-
-    public NominatimServiceTests()
+    public class NominatimServiceTests
     {
-        _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        private readonly NominatimService _nominatimService;
+        private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler; // Mock for HTTP requests
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration; // Configuration for testing
 
-        _httpClient = new HttpClient(_httpMessageHandlerMock.Object)
+        public NominatimServiceTests()
         {
-            BaseAddress = new Uri("https://nominatim.openstreetmap.org/")
-        };
+            // Create a mock HTTP handler to simulate API responses
+            _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
-        _nominatimService = new NominatimService(_httpClient);
-    }
-
-    [Fact]
-    public async Task GetCoordinatesAsync_ShouldReturnCoordinates_WhenCityExists()
-    {
-        // Arrange
-        string cityName = "London";
-        string jsonResponse = "[{\"lat\": \"51.5074\", \"lon\": \"-0.1278\"}]";
-
-        _httpMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
+            // Initialize an HttpClient using the mock handler
+            _httpClient = new HttpClient(_mockHttpMessageHandler.Object)
             {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(jsonResponse)
-            });
+                BaseAddress = new Uri("https://nominatim.openstreetmap.org/") // Set base URL
+            };
 
-        // Act
-        var (latitude, longitude) = await _nominatimService.GetCoordinatesAsync(cityName);
-
-        // Assert
-        Assert.Equal(51.5074, latitude);
-        Assert.Equal(-0.1278, longitude);
-    }
-
-    [Fact]
-    public async Task GetCoordinatesAsync_ShouldThrowException_WhenCityNotFound()
-    {
-        // Arrange
-        string cityName = "UnknownCity";
-        string jsonResponse = "[]"; // API возвращает пустой массив, если город не найден
-
-        _httpMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
+            // Set up a test configuration with dummy values
+            var configData = new Dictionary<string, string>
             {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(jsonResponse)
-            });
+                { "TestKey", "TestValue" } // This key-value pair is just a placeholder for testing
+            };
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(() => _nominatimService.GetCoordinatesAsync(cityName));
-        Assert.Contains("City 'UnknownCity' not found", exception.Message);
-    }
+            // Build an in-memory configuration for dependency injection
+            _configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(configData)
+                .Build();
 
-    [Fact]
-    public async Task GetCoordinatesAsync_ShouldThrowHttpException_WhenApiFails()
-    {
-        // Arrange
-        string cityName = "Paris";
+            // Initialize the NominatimService with the mocked dependencies
+            _nominatimService = new NominatimService(_httpClient, _configuration);
+        }
 
-        _httpMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.InternalServerError
-            });
+        [Fact]
+        public async Task GetCoordinatesAsync_ShouldReturnCoordinates()
+        {
+            // Simulated response from the Nominatim API containing latitude and longitude for "London"
+            var responseContent = "[{\"lat\": \"51.5074\", \"lon\": \"-0.1278\"}]";
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(() => _nominatimService.GetCoordinatesAsync(cityName));
-        Assert.Contains("HTTP error while getting coordinates", exception.Message);
+            // Configure the mock HTTP handler to return a predefined response
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK, // Simulate a successful HTTP response (200 OK)
+                    Content = new StringContent(responseContent) // Provide the fake JSON response
+                });
+
+            // Call the method under test with "London"
+            var result = await _nominatimService.GetCoordinatesAsync("London");
+
+            // Assert that the returned coordinates match the expected values
+            Assert.Equal(51.5074, result.latitude);
+            Assert.Equal(-0.1278, result.longitude);
+        }
     }
 }

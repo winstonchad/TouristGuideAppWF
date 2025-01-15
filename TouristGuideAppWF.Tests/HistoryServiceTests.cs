@@ -5,97 +5,86 @@ using System.Text.Json;
 using TouristGuideAppWF.Services;
 using Xunit;
 
-public class HistoryServiceTests
+namespace TouristGuideAppWF.Tests
 {
-    private const string TestHistoryFilePath = "test_history.json";
-    private HistoryService _historyService;
-
-    public HistoryServiceTests()
+    public class HistoryServiceTests
     {
-        // Remove the test file before each test run to ensure a clean state
-        if (File.Exists(TestHistoryFilePath))
+        private readonly HistoryService _historyService; // Instance of HistoryService for testing
+
+        public HistoryServiceTests()
         {
-            File.Delete(TestHistoryFilePath);
+            _historyService = new HistoryService(); // Initialize HistoryService before each test
         }
 
-        _historyService = new HistoryService();
-    }
+        [Fact]
+        public void AddToHistory_ShouldAddEntry()
+        {
+            _historyService.ClearHistory(); // Ensure history is empty before the test
 
-    [Fact]
-    public void AddToHistory_ShouldAddEntry()
-    {
-        // Clear history before running the test
-        _historyService.ClearHistory();
+            // Add a new entry to history
+            _historyService.AddToHistory("London", "Sunny 15°C", "Big Ben, London Eye");
 
-        // Add a new entry to the history
-        _historyService.AddToHistory("Paris", "Sunny 25°C", "Eiffel Tower, Louvre Museum");
+            var history = _historyService.GetHistory();
 
-        // Retrieve the updated history
-        var history = _historyService.GetHistory();
+            // Verify that only one entry is present
+            Assert.Single(history);
 
-        // Verify that the history contains exactly one entry
-        Assert.Single(history);
+            // Check if the entry data matches the expected values
+            Assert.Equal("London", history[0].CityName);
+            Assert.Equal("Sunny 15°C", history[0].WeatherInfo);
+            Assert.Equal("Big Ben, London Eye", history[0].TouristInfo);
+        }
 
-        // Verify that the added entry is correct
-        var entry = history[0];
-        Assert.Equal("Paris", entry.CityName);
-        Assert.Equal("Sunny 25°C", entry.WeatherInfo);
-        Assert.Equal("Eiffel Tower, Louvre Museum", entry.TouristInfo);
-    }
+        [Fact]
+        public void ClearHistory_ShouldRemoveAllEntries()
+        {
+            // Add an entry before testing the clear function
+            _historyService.AddToHistory("New York", "Rainy 10°C", "Statue of Liberty, Times Square");
 
-    [Fact]
-    public void ClearHistory_ShouldRemoveAllEntries()
-    {
-        // Arrange: Add multiple entries to the history
-        _historyService.AddToHistory("London", "Cloudy 15°C", "Big Ben, Buckingham Palace");
-        _historyService.AddToHistory("New York", "Rainy 10°C", "Statue of Liberty, Times Square");
+            _historyService.ClearHistory(); // Clear the history
 
-        // Act: Clear the history
-        _historyService.ClearHistory();
-        var history = _historyService.GetHistory();
+            var history = _historyService.GetHistory();
 
-        // Assert: Verify that history is now empty
-        Assert.Empty(history);
-    }
+            // Ensure the history is empty after clearing
+            Assert.Empty(history);
+        }
 
-    [Fact]
-    public void RemoveFromHistory_ShouldRemoveCorrectEntry()
-    {
-        // Arrange: Add multiple entries to history
-        _historyService.AddToHistory("Tokyo", "Sunny 30°C", "Shibuya Crossing, Tokyo Tower");
-        _historyService.AddToHistory("Berlin", "Cloudy 12°C", "Brandenburg Gate, Berlin Wall");
-        _historyService.AddToHistory("Sydney", "Windy 22°C", "Sydney Opera House, Bondi Beach");
+        [Fact]
+        public void RemoveFromHistory_ShouldRemoveEntry()
+        {
+            _historyService.ClearHistory(); // Start with a clean state
 
-        // Act: Remove the second entry (Berlin)
-        _historyService.RemoveFromHistory(1);
-        var history = _historyService.GetHistory();
+            // Add multiple entries to history
+            _historyService.AddToHistory("Paris", "Cloudy 20°C", "Eiffel Tower, Louvre Museum");
+            _historyService.AddToHistory("Berlin", "Windy 18°C", "Brandenburg Gate, Berlin Wall");
 
-        // Assert: Verify that the history contains only two entries now
-        Assert.Equal(2, history.Count);
-        Assert.Equal("Tokyo", history[0].CityName);
-        Assert.Equal("Sydney", history[1].CityName);
-    }
+            // Remove the first entry (Paris)
+            _historyService.RemoveFromHistory(0);
 
-    [Fact]
-    public void LoadHistory_ShouldRetrieveSavedData()
-    {
-        // Step 1: Clear history before the test
-        _historyService.ClearHistory();
+            var history = _historyService.GetHistory();
 
-        // Step 2: Add one entry to the history
-        _historyService.AddToHistory("Moscow", "Snowy -5°C", "Red Square, Kremlin");
+            // Ensure that only one entry remains
+            Assert.Single(history);
 
-        // Step 3: Create a new instance of HistoryService to verify data persistence
-        var newHistoryService = new HistoryService();
-        var loadedHistory = newHistoryService.GetHistory();
+            // Verify that the remaining entry is Berlin
+            Assert.Equal("Berlin", history[0].CityName);
+        }
 
-        // Step 4: Verify that the loaded history contains exactly one entry
-        Assert.Single(loadedHistory);
+        [Fact]
+        public void LoadHistory_ShouldRetrieveSavedData()
+        {
+            _historyService.ClearHistory(); // Clear history before the test
 
-        // Step 5: Verify that the loaded entry is correct
-        var entry = loadedHistory[0];
-        Assert.Equal("Moscow", entry.CityName);
-        Assert.Equal("Snowy -5°C", entry.WeatherInfo);
-        Assert.Equal("Red Square, Kremlin", entry.TouristInfo);
+            // Add an entry to history
+            _historyService.AddToHistory("Tokyo", "Sunny 30°C", "Shibuya Crossing, Tokyo Tower");
+
+            // Create a new instance of HistoryService to test data persistence
+            var newHistoryService = new HistoryService();
+            var history = newHistoryService.GetHistory();
+
+            // Verify that the new instance successfully retrieves the previously saved data
+            Assert.Single(history);
+            Assert.Equal("Tokyo", history[0].CityName);
+        }
     }
 }

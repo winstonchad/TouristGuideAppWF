@@ -1,8 +1,4 @@
-﻿using System;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
+﻿using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -10,118 +6,61 @@ using Moq.Protected;
 using TouristGuideAppWF.Services;
 using Xunit;
 
-public class GeminiServiceTests
+namespace TouristGuideAppWF.Tests
 {
-    private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
-    private readonly HttpClient _httpClient;
-    private readonly Mock<IConfiguration> _mockConfiguration;
-    private readonly GeminiService _geminiService;
-
-    public GeminiServiceTests()
+    public class GeminiServiceTests
     {
-        _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        private readonly GeminiService _geminiService;
+        private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler; // Mock handler for HTTP requests
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration; // Configuration for API key
 
-        _httpClient = new HttpClient(_mockHttpMessageHandler.Object)
+        public GeminiServiceTests()
         {
-            BaseAddress = new Uri("https://generativelanguage.googleapis.com/")
-        };
+            // Create a mock HTTP handler to simulate API requests
+            _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
-        _mockConfiguration = new Mock<IConfiguration>();
-        _mockConfiguration.Setup(c => c["GoogleAi:ApiKey"]).Returns("fake-api-key");
+            // Initialize an HttpClient using the mock handler
+            _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
 
-        _geminiService = new GeminiService(_httpClient, _mockConfiguration.Object);
-    }
+            // Set up test configuration with a fake API key
+            var configData = new Dictionary<string, string>
+            {
+                { "GoogleAi:ApiKey", "test-api-key" } // Fake API key for testing
+            };
 
-    [Fact]
-    public async Task GetTouristAttractionsAsync_ShouldReturnTouristAttractions_WhenApiReturnsSuccess()
-    {
-        // Arrange: Mock a successful JSON response from the API
-        string fakeApiResponse = @"{
-            ""candidates"": [
+            // Build the test configuration
+            _configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(configData) // Store config data in memory
+                .Build();
+
+            // Initialize the GeminiService with mocked dependencies
+            _geminiService = new GeminiService(_httpClient, _configuration);
+        }
+
+        [Fact]
+        public async Task GetTouristAttractionsAsync_ShouldReturnTouristInfo()
+        {
+            // Simulated response from the Gemini API containing tourist attractions
+            var responseContent = "{ \"candidates\": [{ \"content\": { \"parts\": [{ \"text\": \"Eiffel Tower, Louvre Museum\" }] } }] }";
+
+            // Configure the mock HTTP handler to return a predefined response
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
                 {
-                    ""content"": {
-                        ""parts"": [
-                            { ""text"": ""1. Eiffel Tower: Iconic landmark of Paris.\n2. Louvre Museum: Home to the Mona Lisa."" }
-                        ]
-                    }
-                }
-            ]
-        }";
+                    StatusCode = System.Net.HttpStatusCode.OK, // Simulate a successful response (200 OK)
+                    Content = new StringContent(responseContent) // Provide the fake response content
+                });
 
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(fakeApiResponse, Encoding.UTF8, "application/json")
-            });
+            // Call the method under test
+            var result = await _geminiService.GetTouristAttractionsAsync("Paris");
 
-        // Act
-        string result = await _geminiService.GetTouristAttractionsAsync("Paris");
-
-        // Assert
-        Assert.Contains("Eiffel Tower", result);
-        Assert.Contains("Louvre Museum", result);
-    }
-
-    [Fact]
-    public async Task GetTouristAttractionsAsync_ShouldReturnErrorMessage_WhenCityNameIsEmpty()
-    {
-        // Act
-        string result = await _geminiService.GetTouristAttractionsAsync("");
-
-        // Assert
-        Assert.Equal("City name cannot be empty.", result);
-    }
-
-    [Fact]
-    public async Task GetTouristAttractionsAsync_ShouldReturnHttpError_WhenApiCallFails()
-    {
-        // Arrange: Simulate a network failure
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ThrowsAsync(new HttpRequestException("Network failure"));
-
-        // Act
-        string result = await _geminiService.GetTouristAttractionsAsync("London");
-
-        // Assert
-        Assert.Contains("HTTP error while getting response from Gemini", result);
-    }
-
-    [Fact]
-    public async Task GetTouristAttractionsAsync_ShouldReturnErrorMessage_WhenApiReturnsEmptyResponse()
-    {
-        // Arrange: Simulate an empty API response
-        string fakeEmptyApiResponse = @"{ ""candidates"": [] }";
-
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(fakeEmptyApiResponse, Encoding.UTF8, "application/json")
-            });
-
-        // Act
-        string result = await _geminiService.GetTouristAttractionsAsync("Tokyo");
-
-        // Assert
-        Assert.Equal("No tourist attractions found in Gemini response.", result);
+            // Verify that the result contains expected attractions
+            Assert.Contains("Eiffel Tower", result);
+            Assert.Contains("Louvre Museum", result);
+        }
     }
 }

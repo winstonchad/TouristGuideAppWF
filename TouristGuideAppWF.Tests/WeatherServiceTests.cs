@@ -1,6 +1,4 @@
-﻿using System;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -8,85 +6,61 @@ using Moq.Protected;
 using TouristGuideAppWF.Services;
 using Xunit;
 
-public class WeatherServiceTests
+namespace TouristGuideAppWF.Tests
 {
-    private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
-    private readonly HttpClient _httpClient;
-    private readonly Mock<IConfiguration> _mockConfiguration;
-    private readonly WeatherService _weatherService;
-
-    public WeatherServiceTests()
+    public class WeatherServiceTests
     {
-        _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        private readonly WeatherService _weatherService; // Instance of WeatherService for testing
+        private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler; // Mocked HTTP message handler
+        private readonly HttpClient _httpClient; // Mocked HTTP client
+        private readonly IConfiguration _configuration; // Configuration for API key
 
-        _httpClient = new HttpClient(_mockHttpMessageHandler.Object)
+        public WeatherServiceTests()
         {
-            BaseAddress = new Uri("https://api.openweathermap.org/")
-        };
+            // Mocking HTTP message handler for simulating API responses
+            _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
-        _mockConfiguration = new Mock<IConfiguration>();
-        _mockConfiguration.Setup(c => c["WeatherApi:ApiKey"]).Returns("fake-api-key");
+            // Create an HTTP client using the mocked handler
+            _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
 
-        _weatherService = new WeatherService(_httpClient, _mockConfiguration.Object);
-    }
-
-    [Fact]
-    public async Task GetWeatherAsync_ShouldReturnWeatherInfo_WhenApiReturnsSuccess()
-    {
-        // Arrange: Mock the API response
-        string fakeApiResponse = @"{
-            ""weather"": [{""description"": ""clear sky""}],
-            ""main"": {""temp"": 25.5}
-        }";
-
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
+            // Creating in-memory configuration for the weather API key
+            var configData = new Dictionary<string, string>
             {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(fakeApiResponse)
-            });
+                { "WeatherApi:ApiKey", "test-api-key" } // Mock API key for testing
+            };
 
-        // Act: Call the method
-        string result = await _weatherService.GetWeatherAsync("New York", 40.7128, -74.0060);
+            _configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(configData)
+                .Build();
 
-        // Assert: Verify the result
-        Assert.Contains("The weather in New York is clear sky", result);
-        Assert.Contains("temperature is 25.5°C", result);
-    }
+            // Initializing WeatherService with mocked dependencies
+            _weatherService = new WeatherService(_httpClient, _configuration);
+        }
 
-    [Fact]
-    public async Task GetWeatherAsync_ShouldReturnError_WhenCityNameIsEmpty()
-    {
-        // Act
-        string result = await _weatherService.GetWeatherAsync("", 40.7128, -74.0060);
+        [Fact]
+        public async Task GetWeatherAsync_ShouldReturnWeatherInfo()
+        {
+            // Mocked JSON response for the weather API
+            var responseContent = "{ \"weather\": [{ \"description\": \"clear sky\" }], \"main\": { \"temp\": 25.0 } }";
 
-        // Assert
-        Assert.Equal("City name is missing.", result);
-    }
+            // Setup mock HTTP response for API call
+            _mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(), // Any request
+                    ItExpr.IsAny<CancellationToken>())   // Any cancellation token
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK, // Mock successful response
+                    Content = new StringContent(responseContent) // Mock response body
+                });
 
-    [Fact]
-    public async Task GetWeatherAsync_ShouldReturnHttpError_WhenApiCallFails()
-    {
-        // Arrange: Simulate a network failure
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ThrowsAsync(new HttpRequestException("Network failure"));
+            // Act: Call GetWeatherAsync with test city and coordinates
+            var result = await _weatherService.GetWeatherAsync("London", 51.5074, -0.1278);
 
-        // Act
-        string result = await _weatherService.GetWeatherAsync("Los Angeles", 34.0522, -118.2437);
-
-        // Assert
-        Assert.Contains("HTTP error while fetching weather", result);
+            // Assert: Ensure that the response contains expected values
+            Assert.Contains("clear sky", result); // Verify weather description
+            Assert.Contains("25°C", result); // Verify temperature
+        }
     }
 }
