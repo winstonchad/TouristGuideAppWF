@@ -1,51 +1,90 @@
-# WeatherTouristGuide
+TouristGuideAppWF
+TouristGuideAppWF is a C# Windows Forms application designed to assist users in exploring tourist information about cities worldwide. The application integrates weather forecasts, tourist attractions, and map services to provide a comprehensive user experience.
 
-**WeatherTouristGuide** is a Windows Forms application designed to help users quickly find both weather information and tourist attractions for any city in the world.
+Features
+Weather Information
+Fetches the current weather data for the selected city using the OpenWeatherMap API.
 
-## Features
+Tourist Attractions
+Lists notable attractions in the city using the Google Gemini API.
 
-1.  **City Input**: Users can enter the name of a city in the application.
-2.  **Weather Information**: Upon searching, the application displays the current weather in the selected city (temperature in Celsius, and weather description).
-3.  **Tourist Attractions**: The application also provides a list of 5 popular tourist attractions for the entered city, complete with short descriptions.
-4.  **Instant Results**: Information is updated and displayed immediately after clicking the search button.
+Interactive Map
+Opens the city location in Google Maps directly from the application.
 
-## Technologies Used
+Search History
+Keeps a record of previous searches, allowing users to view, delete, or clear their history.
 
-*   **Windows Forms (.NET 8.0)**: Used for building the application's user interface.
-*   **OpenWeatherMap API**: Provides current weather data for the specified location.
-*   **Google Gemini API**: Generates a list of tourist attractions with short descriptions.
-*   **Nominatim API**: Transforms city names into geographical coordinates (latitude and longitude).
+Technologies Used
+C# with Windows Forms for the graphical user interface.
+OpenWeatherMap API for weather data.
+Google Gemini API for tourist attraction information.
+Nominatim API for geocoding.
+Dependency Injection via IHttpClientFactory.
+Unit Testing using xUnit and Moq.
+Installation and Setup
+Prerequisites
+.NET SDK (version 8.0 or later)
+Internet connection for API requests
+Steps
+Clone the repository:
+bash
+Copy code
+git clone https://github.com/yourusername/TouristGuideAppWF.git
+Open the project in Visual Studio.
+Restore NuGet packages:
+bash
+Copy code
+dotnet restore
+Build and run the project.
+API Configuration
+appsettings.json
+Ensure that the appsettings.json file contains valid API keys:
 
-## Installation and Usage
+json
+Copy code
+{
+  "WeatherApi": {
+    "ApiKey": "your_openweathermap_api_key"
+  },
+  "GoogleAi": {
+    "ApiKey": "your_google_gemini_api_key"
+  }
+}
+How to Use
+Enter the name of the city in the input box.
+Click Search to fetch weather and tourist attraction information.
+Click Open Map in Browser to view the city's location on Google Maps.
+Use the History menu to:
+View previous searches.
+Delete specific entries or clear all history.
+Unit Testing
+The project is covered by unit tests written with xUnit and uses Moq for mocking HTTP responses. To run the tests:
 
-1.  Make sure you have **.NET 8.0 SDK** installed on your system.
-2.  Clone this repository to your local machine:
+Open the solution in Visual Studio.
+Run all tests via the Test Explorer.
+Project Structure
+Services/
+Contains services responsible for API integration:
 
-    ```bash
-    git clone https://github.com/your-username/your-repository-name.git
-    ```
-    Replace  `https://github.com/your-username/your-repository-name.git` with actual link to your repo.
-3.  Open the `WeatherTouristGuide.sln` solution file using **Visual Studio**.
-4.  Configure API keys:
-     - Create an `appsettings.json` file in the project root directory.
-     - Add your API keys for OpenWeatherMap and Google Gemini API as shown below:
-        ```json
-          {
-              "WeatherApi": {
-               "ApiKey": "YOUR_OPENWEATHERMAP_API_KEY_HERE"
-               },
-              "GoogleAi":{
-               "ApiKey":"YOUR_GOOGLE_GEMINI_API_KEY_HERE"
-             }
-           }
-         ```
-   -   Replace `"your_openweathermap_api_key"` and `"your_google_gemini_api_key"` with your actual API keys.
-5.  Build and run the application using **Visual Studio**.
-6. Enter the City name in the text box and press Search. The application will provide detailed weather information and tourist attractions for the entered City.
+BaseService: Common HTTP functionality.
+WeatherService: Interacts with OpenWeatherMap API.
+GeminiService: Interacts with Google Gemini API.
+NominatimService: Provides geocoding functionality.
+HistoryService: Manages search history.
+Tests/
+Contains unit tests for all services.
 
-## Notes:
-* This application uses free api keys, it may require a paid subscription to openweathermap.
-*  Ensure you've enabled billing options for your Google Cloud account (in case of issues with Gemini Api)
+Form1.cs
+The main UI logic of the application.
 
-## License
-This project is distributed under the MIT license
+Known Limitations
+API keys included are for testing purposes and may have limited usage.
+The application requires an active internet connection for API requests.
+Contributing
+Contributions are welcome! Please follow these steps:
+
+Fork the repository.
+Create a new branch for your feature or bug fix.
+Submit a pull request.
+License
+This project is licensed under the MIT License. See the LICENSE file for details.
